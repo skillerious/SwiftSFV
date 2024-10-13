@@ -1,6 +1,6 @@
 # SwiftSFV
 
-A comprehensive GUI application for generating and verifying SFV (Simple File Verification) files, comparing files and directories, and ensuring data integrity. Built with Python and PyQt6, SwiftSFV provides an intuitive interface for managing checksums using CRC32, MD5, or SHA1 algorithms.
+SwiftSFV is a comprehensive GUI application for generating, verifying, and comparing SFV (Simple File Verification) files, comparing files and directories, and ensuring data integrity. Built with Python and PyQt6, SwiftSFV provides an intuitive interface for managing checksums using CRC32, MD5, SHA-1, and other supported algorithms.
 
 ![SwiftSFV Logo](images/app_icon.png)
 
@@ -14,171 +14,119 @@ A comprehensive GUI application for generating and verifying SFV (Simple File Ve
 
 - [Features](#features)
 - [Screenshots](#screenshots)
-- [Prerequisites](#prerequisites)
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
   - [Generating SFV Files](#generating-sfv-files)
   - [Verifying SFV Files](#verifying-sfv-files)
   - [Comparing Files or Directories](#comparing-files-or-directories)
+  - [History](#history)
   - [Settings and Preferences](#settings-and-preferences)
-  - [Session Management](#session-management)
-  - [Keyboard Shortcuts](#keyboard-shortcuts)
-- [Customization](#customization)
-  - [Themes](#themes)
-  - [Checksum Algorithms](#checksum-algorithms)
+- [Error Handling](#error-handling)
+- [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgements](#acknowledgements)
+- [Contact](#contact)
 
 ## Features
 
-- **Generate SFV Files**: Create SFV files for selected files or directories using CRC32, MD5, or SHA1 checksums.
-- **Verify SFV Files**: Verify the integrity of files against an existing SFV file.
-- **Compare Files or Directories**: Compare two files or directories to check for differences.
+- **Generate SFV files**: Create SFV files for selected files or directories using CRC32, MD5, SHA-1, and other supported checksums.
+- **Verify SFV files**: Verify the integrity of files against an existing SFV file.
+- **Compare files or directories**: Compare two files or directories to check for differences.
 - **Drag-and-Drop Interface**: Easily add files and directories via drag-and-drop.
-- **Customizable Settings**: Choose default checksum algorithms, themes (Dark or Light), default directories, and logging preferences.
+- **Customizable Settings**: Choose default checksum algorithms, default directories, and logging preferences.
+- **History tracking**: Keeps a log of previously performed operations, including generated SFV files, verifications, and comparisons.
 - **Session Management**: Save and load sessions to continue work at a later time.
 - **Multithreading Support**: Performs tasks using threading to keep the UI responsive.
 - **Progress Indicators**: Visual progress bars and status messages for long-running tasks.
 - **Cross-Platform Compatibility**: Works on Windows, macOS, and Linux.
-- **Modern UI Design**: Intuitive and user-friendly interface with theme support.
+- **Modern UI Design**: Intuitive and user-friendly interface with theme support (Dark and Light).
 
-## Screenshots
+## Requirements
 
-### Generate SFV Files
-
-![Generate SFV](screenshots/generate_sfv.png)
-
-### Verify SFV Files
-
-![Verify SFV](screenshots/verify_sfv.png)
-
-### Compare Files or Directories
-
-![Compare Files](screenshots/compare_files.png)
-
-### Settings Dialog
-
-![Settings](screenshots/settings_dialog.png)
-
-*Note: If the images are not visible, please check the "screenshots" folder in the repository.*
-
-## Prerequisites
-
-- **Python 3.7 or higher**
-- **PyQt6 library**
-- **Additional Python Modules**:
-  - `zlib`
-  - `hashlib`
-  - `pickle`
+- Python 3.8+
+- PyQt6
 
 ## Installation
 
-1. **Clone the Repository**
+To install the required dependencies, use:
 
-   ```bash
-   git clone https://github.com/skillerious/SwiftSFV.git
-   cd SwiftSFV
-   ```
-
-2. **Create a Virtual Environment (Optional but Recommended)**
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use 'venv\Scripts\activate'
-   ```
-
-3. **Install Required Packages**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   **Note**: If `requirements.txt` is not provided, install PyQt6 manually:
-
-   ```bash
-   pip install PyQt6
-   ```
-
-4. **Run the Application**
-
-   ```bash
-   python SwiftSFV.py
-   ```
-
-   Replace `SwiftSFV.py` with the actual filename if different.
+```sh
+pip install PyQt6
+```
 
 ## Usage
+
+To run the application, execute the `main.py` file:
+
+```sh
+python main.py
+```
 
 ### Generating SFV Files
 
 1. **Navigate to "Generate SFV"**
-
-   On the sidebar, select **Generate SFV**.
+    - On the sidebar, select **Generate SFV**.
 
 2. **Add Files or Folders**
-
-   - **Drag and Drop**: Drag files or folders into the file list area.
-   - **Add Files/Folders Button**: Click the **Add Files/Folders** button to select files or directories via a dialog.
+    - **Drag and Drop**: Drag files or folders into the file list area.
+    - **Add Files/Folders Button**: Click the **Add Files/Folders** button to select files or directories via a dialog.
 
 3. **Clear Files (Optional)**
-
-   Use the **Clear Files** button to remove all files from the list.
+    - Use the **Clear Files** button to remove all files from the list.
 
 4. **Generate SFV**
-
-   Click the **Generate SFV** button. A progress bar will indicate the task's progress.
+    - Click the **Generate SFV** button. A progress bar will indicate the task's progress.
 
 5. **Save SFV File**
-
-   Once generation is complete, you will be prompted to save the SFV file. Choose a location and filename.
+    - Once generation is complete, you will be prompted to save the SFV file. Choose a location and filename.
 
 6. **View Output**
-
-   The generated SFV content will be displayed in the output area.
+    - The generated SFV content will be displayed in the output area.
 
 ### Verifying SFV Files
 
 1. **Navigate to "Verify SFV"**
-
-   On the sidebar, select **Verify SFV**.
+    - On the sidebar, select **Verify SFV**.
 
 2. **Select SFV File**
-
-   Click the **Select SFV File** button and choose an existing SFV file.
+    - Click the **Select SFV File** button and choose an existing SFV file.
 
 3. **Verify SFV**
-
-   After selecting the SFV file, click the **Verify SFV** button. The application will verify each file listed in the SFV file.
+    - After selecting the SFV file, click the **Verify SFV** button. The application will verify each file listed in the SFV file.
 
 4. **View Results**
-
-   The verification results will be displayed in the output area, indicating if files are OK, mismatched, or missing.
+    - The verification results will be displayed in the output area, indicating if files are OK, mismatched, or missing.
 
 ### Comparing Files or Directories
 
 1. **Navigate to "Compare Files"**
-
-   On the sidebar, select **Compare Files**.
+    - On the sidebar, select **Compare Files**.
 
 2. **Select Paths**
-
-   - **Path 1**: Use the **Select Path 1** button to choose the first file or directory.
-   - **Path 2**: Use the **Select Path 2** button to choose the second file or directory.
+    - **Path 1**: Use the **Select Path 1** button to choose the first file or directory.
+    - **Path 2**: Use the **Select Path 2** button to choose the second file or directory.
 
 3. **Compare**
-
-   Click the **Compare** button to start the comparison.
+    - Click the **Compare** button to start the comparison.
 
 4. **View Comparison Results**
+    - The output area will display whether the files or directories are identical or list the differences.
 
-   The output area will display whether the files or directories are identical or list the differences.
+### History
+
+- **View History**
+  - Navigate to the **History** section to view a log of all generated SFV files, verifications, and comparisons.
+- **Clear History**
+  - Use the **Clear History** button to remove all history entries.
+- **Copy to Clipboard**
+  - Copy the history entries to the clipboard for reference.
 
 ### Settings and Preferences
 
 Access the settings by clicking on **Settings > Preferences** in the menu bar.
 
-- **Default Checksum Algorithm**: Choose between CRC32, MD5, or SHA1.
+- **Default Checksum Algorithm**: Choose between CRC32, MD5, SHA-1, and other available algorithms.
 - **Theme**: Switch between Dark and Light themes.
 - **Default Directory**: Set a default directory for file dialogs.
 - **Enable Logging**: Toggle logging of verification results.
@@ -186,97 +134,34 @@ Access the settings by clicking on **Settings > Preferences** in the menu bar.
 
 After adjusting settings, click **Save** to apply changes.
 
-### Session Management
+## Screenshots
 
-- **Save Session**
+[![Screenshot-2024-10-13-123924.png](https://i.postimg.cc/WzWh2CV7/Screenshot-2024-10-13-123924.png)](https://postimg.cc/PvDty6PL)
 
-  - Go to **Session > Save Session**.
-  - Choose a location and filename to save the current session, which includes the file list and selected SFV file.
+## Error Handling
 
-- **Load Session**
+SwiftSFV includes a global exception handler for any unexpected issues. Errors are logged to a file (`sfv_checker_debug.log`) and also displayed in a message box.
 
-  - Go to **Session > Load Session**.
-  - Select a previously saved session file to restore the state.
+## Development
 
-### Keyboard Shortcuts
+The project uses a modular structure to ensure the separation of GUI, logic, and background tasks.
 
-- **Add Files/Folders**: `Ctrl + O`
-- **Generate SFV**: `Ctrl + G`
-- **Verify SFV**: `Ctrl + V`
-- **Compare Files**: `Ctrl + C`
-- **Open Settings**: `Ctrl + S`
-- **Save Session**: `Ctrl + Shift + S`
-- **Load Session**: `Ctrl + L`
+- **`ChecksumTask`**: A background task for generating SFV files.
+- **`VerificationTask`**: A background task for verifying the contents of an SFV file.
+- **`CompareTask`**: A background task for comparing two files or directories.
 
-## Customization
+### Contributing
 
-### Themes
-
-SwiftSFV supports Dark and Light themes. You can switch between them in the **Settings** dialog.
-
-- **Dark Theme**: Ideal for low-light environments, reduces eye strain.
-- **Light Theme**: Classic appearance with high contrast.
-
-### Checksum Algorithms
-
-Choose your preferred checksum algorithm based on your requirements:
-
-- **CRC32**: Fast but less secure, commonly used for error-checking.
-- **MD5**: Moderate speed, better for ensuring data integrity.
-- **SHA1**: Slower but more secure, suitable for critical data verification.
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. **Fork the Repository**
-
-   Click the **Fork** button at the top-right corner of the repository page.
-
-2. **Clone Your Fork**
-
-   ```bash
-   git clone https://github.com/yourusername/SwiftSFV.git
-   cd SwiftSFV
-   ```
-
-3. **Create a Branch**
-
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-4. **Make Changes**
-
-   Implement your feature or bug fix.
-
-5. **Commit Changes**
-
-   ```bash
-   git add .
-   git commit -m "Description of your changes"
-   ```
-
-6. **Push to Your Fork**
-
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-7. **Create a Pull Request**
-
-   Go to the original repository and click **New Pull Request**.
+Contributions are welcome! Feel free to submit issues or pull requests for improvements.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
-## Acknowledgements
+## Contact
 
-- **PyQt6**: For the powerful GUI framework.
-- **Open Source Community**: For the inspiration and continuous support.
-- **Contributors**: Thanks to everyone who has contributed to the project.
+For any inquiries, you can reach out via the GitHub repository: [https://github.com/skillerious/swiftsfv](https://github.com/skillerious/swiftsfv)
 
 ---
 
-**Disclaimer**: This application is provided "as is" without warranty of any kind. Use at your own risk.
+**Note**: Ensure you have a directory called `images` containing appropriate icons (`generate.png`, `verify.png`, `compare.png`, etc.) for use in the application. Missing icons will be indicated by warnings in the application log.
