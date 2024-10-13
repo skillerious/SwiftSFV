@@ -138,6 +138,8 @@ After adjusting settings, click **Save** to apply changes.
 
 [![Screenshot-2024-10-13-123924.png](https://i.postimg.cc/WzWh2CV7/Screenshot-2024-10-13-123924.png)](https://postimg.cc/PvDty6PL)
 
+[![Screenshot-2024-10-13-124226.png](https://i.postimg.cc/L5b8dPkC/Screenshot-2024-10-13-124226.png)](https://postimg.cc/kRWmKBpK)
+
 ## Error Handling
 
 SwiftSFV includes a global exception handler for any unexpected issues. Errors are logged to a file (`sfv_checker_debug.log`) and also displayed in a message box.
