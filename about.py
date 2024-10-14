@@ -19,7 +19,13 @@ class AboutDialog(QDialog):
         self.setWindowTitle("About SwiftSFV")
         self.setFixedSize(500, 400)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        # Determine the base directory and images directory
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.images_dir = os.path.join(base_dir, 'images')
         self.init_ui()
+        
+         # Set window icon
+        self.set_dialog_icon()
 
     def init_ui(self):
         """
@@ -31,7 +37,7 @@ class AboutDialog(QDialog):
 
         # Logo
         logo_label = QLabel()
-        logo_pixmap = self.load_pixmap('logo.png')  # Ensure 'logo.png' exists in 'images' directory
+        logo_pixmap = self.load_pixmap('logo1.png')  # Ensure 'logo.png' exists in 'images' directory
         if logo_pixmap:
             logo_pixmap = logo_pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             logo_label.setPixmap(logo_pixmap)
@@ -132,6 +138,17 @@ class AboutDialog(QDialog):
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
+        
+    def set_dialog_icon(self):
+        """
+        Set the window icon for the about dialog.
+        """
+        icon_path = os.path.join(self.images_dir, 'about.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            logging.debug(f"Set about dialog icon to {icon_path}")
+        else:
+            logging.warning(f"About dialog icon not found: {icon_path}. Using default icon.")
 
     def load_pixmap(self, pixmap_name):
         """

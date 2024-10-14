@@ -5,6 +5,9 @@ import os
 import csv
 import logging
 import time
+import concurrent.futures
+import threading
+
 
 from PyQt6.QtCore import (
     Qt, QRunnable, QThreadPool, pyqtSlot, QObject, pyqtSignal
@@ -49,14 +52,17 @@ class Signals(QObject):
     result = pyqtSignal(object)       # Emitting results (e.g., SFV content, verification results)
     finished = pyqtSignal()           # Emitting when task is finished
 
+
 # ChecksumTask for Generating SFV
 class ChecksumTask(QRunnable):
-    def __init__(self, files, algorithm):
+    def __init__(self, files, algorithm, base_directory=None, num_threads=1):
         super().__init__()
         self.files = files
         self.algorithm = algorithm
+        self.base_directory = base_directory or os.getcwd()
         self.signals = Signals()
-        logging.debug(f"Initialized ChecksumTask with {len(self.files)} files using {self.algorithm} algorithm.")
+        self.num_threads = num_threads
+        logging.debug(f"Initialized ChecksumTask with {len(files)} files using {algorithm} algorithm and {num_threads} threads.")
 
     @pyqtSlot()
     def run(self):
@@ -67,10 +73,14 @@ class ChecksumTask(QRunnable):
             self.signals.finished.emit()
             return
 
-        sfv_content = ""
         total_files = len(self.files)
+        sfv_entries = []
+        progress_counter = 0
+        progress_lock = threading.Lock()
 
-        for idx, file in enumerate(self.files, 1):
+        # Function to process a single file
+        def process_file(file):
+            nonlocal progress_counter
             try:
                 file_path = os.path.abspath(file)
                 logging.debug(f"Processing file: {file_path}")
@@ -85,36 +95,54 @@ class ChecksumTask(QRunnable):
                 logging.debug(f"Calculated checksum: {checksum} for file: {file_path}")
 
                 # Determine path type based on settings
-                relative_path = os.path.relpath(file_path, settings.get_default_directory()) if settings.get_output_path_type() == "Relative" else file_path
+                if settings.get_output_path_type() == "Relative":
+                    relative_path = os.path.relpath(file_path, self.base_directory)
+                else:
+                    relative_path = file_path
 
                 # Determine delimiter based on settings
-                delimiter = settings.get_custom_delimiter() if settings.get_delimiter() == "Custom" else (" " if settings.get_delimiter() == "Space" else "\t")
+                delimiter_option = settings.get_delimiter()
+                if delimiter_option == "Custom":
+                    delimiter = settings.get_custom_delimiter()
+                elif delimiter_option == "Tab":
+                    delimiter = "\t"
+                else:  # Default to Space
+                    delimiter = " "
 
                 sfv_entry = f"{relative_path}{delimiter}{checksum}\n"
-                sfv_content += sfv_entry
-
-                # Emit progress
-                progress = int((idx / total_files) * 100)
-                self.signals.progress.emit(progress)
-                self.signals.message.emit(f"Processed {idx}/{total_files}: {relative_path}")
-
+                result = (sfv_entry, None)
             except Exception as e:
                 logging.error(f"Error processing {file}: {e}")
-                sfv_entry = f"{os.path.basename(file)} ERROR: {e}\n"
-                sfv_content += sfv_entry
-                # Still emit progress
-                progress = int((idx / total_files) * 100)
-                self.signals.progress.emit(progress)
-                self.signals.message.emit(f"Error processing {file}: {e}")
+                sfv_entry = f"; Error processing {os.path.basename(file)}: {e}\n"  # Add as comment
+                result = (sfv_entry, str(e))
+            finally:
+                # Update progress
+                with progress_lock:
+                    progress_counter += 1
+                    progress = int((progress_counter / total_files) * 100)
+                    self.signals.progress.emit(progress)
+                    self.signals.message.emit(f"Processed {progress_counter}/{total_files}")
+            return result
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+            futures = [executor.submit(process_file, file) for file in self.files]
+            for future in concurrent.futures.as_completed(futures):
+                sfv_entry, error = future.result()
+                sfv_entries.append(sfv_entry)
+
+        # Combine sfv entries
+        sfv_content = ''.join(sfv_entries)
 
         # Emit the final SFV content
         self.signals.result.emit(sfv_content)
         logging.debug("ChecksumTask.run() completed. Emitting result and finished signals.")
         self.signals.finished.emit()
 
+
+
 # VerificationTask for Verifying SFV
 class VerificationTask(QRunnable):
-    def __init__(self, sfv_file, algorithm, log_enabled, log_file_path, log_format='TXT'):
+    def __init__(self, sfv_file, algorithm, log_enabled=False, log_file_path=None, log_format="TXT"):
         super().__init__()
         self.sfv_file = sfv_file
         self.algorithm = algorithm
@@ -122,7 +150,8 @@ class VerificationTask(QRunnable):
         self.log_file_path = log_file_path
         self.log_format = log_format
         self.signals = Signals()
-        logging.debug(f"Initialized VerificationTask for SFV file: {self.sfv_file} with algorithm: {self.algorithm}")
+        self.base_directory = os.path.dirname(os.path.abspath(sfv_file))
+        logging.debug(f"Initialized VerificationTask with SFV file: {sfv_file} using {algorithm} algorithm.")
 
     @pyqtSlot()
     def run(self):
@@ -143,44 +172,58 @@ class VerificationTask(QRunnable):
             return
 
         results = []
-        output = ''
         for idx, line in enumerate(lines, 1):
-            parts = line.rstrip().rsplit(' ', 1)
+            line = line.strip()
+            # Skip comment lines and empty lines
+            if line.startswith(';') or not line:
+                self.update_progress(idx, total_files)
+                continue  # Skip this iteration
+
+            parts = line.rsplit(None, 1)
             if len(parts) != 2:
-                output += f"Invalid line in SFV: {line}\n"
-                results.append({'filename': parts[0] if parts else 'Unknown', 'status': 'Invalid line'})
+                filename = parts[0] if parts else 'Unknown'
+                logging.warning(f"Invalid line in SFV: {line}")
+                results.append({'filename': filename, 'status': 'Invalid line'})
                 self.update_progress(idx, total_files)
                 continue
+
             filename, expected_checksum = parts
 
             # Determine path type based on settings
-            file_path = os.path.abspath(filename) if settings.get_output_path_type() == "Absolute" else os.path.join(settings.get_default_directory(), filename)
+            if settings.get_output_path_type() == "Absolute":
+                file_path = os.path.abspath(filename)
+            else:
+                file_path = os.path.join(self.base_directory, filename)
+
             if not os.path.isfile(file_path):
-                output += f"{filename}: File not found\n"
+                logging.warning(f"File not found: {file_path}")
                 results.append({'filename': filename, 'status': 'File not found'})
                 self.update_progress(idx, total_files)
                 continue
+
             try:
                 checksum = calculate_checksum(file_path, self.algorithm)
                 logging.debug(f"Expected Checksum: {expected_checksum}")
                 logging.debug(f"Actual Checksum: {checksum}")
                 if checksum.upper() == expected_checksum.upper():
-                    output += f"{filename}: OK\n"
                     results.append({'filename': filename, 'status': 'OK'})
                 else:
-                    output += f"{filename}: MISMATCH (Expected {expected_checksum}, Got {checksum})\n"
-                    results.append({'filename': filename, 'status': 'MISMATCH'})
+                    results.append({'filename': filename, 'status': f'MISMATCH (Expected {expected_checksum}, Got {checksum})'})
                 self.update_progress(idx, total_files)
             except Exception as e:
-                output += f"{filename}: ERROR {e}\n"
+                logging.error(f"Error verifying {file_path}: {e}")
                 results.append({'filename': filename, 'status': f'ERROR {e}'})
                 self.update_progress(idx, total_files)
 
         self.signals.result.emit(results)
-        if self.log_enabled:
-            self.save_log(output)
-        self.signals.finished.emit()
         logging.debug("VerificationTask.run() completed. Emitting result and finished signals.")
+        self.signals.finished.emit()
+
+    def update_progress(self, current, total):
+        progress = int((current / total) * 100)
+        self.signals.progress.emit(progress)
+        self.signals.message.emit(f"Processed {current}/{total}")
+
 
     def save_log(self, content):
         try:
@@ -331,6 +374,20 @@ class SFVApp(QMainWindow):
         self.load_history()
         self.threadpool = QThreadPool.globalInstance()
         logging.debug("SFVApp initialized.")
+        
+    # Set window icon
+        self.set_app_icon()
+
+    def set_app_icon(self):
+        """
+        Set the window icon for the main application window.
+        """
+        icon_path = os.path.join(self.images_dir, 'logo1.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            logging.debug(f"Set main window icon to {icon_path}")
+        else:
+            logging.warning(f"App icon not found: {icon_path}. Using default icon.")
 
     def init_ui(self):
         self.setWindowTitle("SwiftSFV")
@@ -735,19 +792,10 @@ class SFVApp(QMainWindow):
         files, _ = QFileDialog.getOpenFileNames(
             self, "Select Files to Generate SFV", self.settings.get_default_directory() or os.getcwd(), "All Files (*)", options=options
         )
-        folders = QFileDialog.getExistingDirectory(
-            self, "Select Folder to Generate SFV", self.settings.get_default_directory() or os.getcwd(), options=options
-        )
         if files:
             for file in files:
                 if not self.file_list_generate.findItems(file, Qt.MatchFlag.MatchExactly):
                     self.file_list_generate.addItem(file)
-        if folders:
-            for root, dirs, filenames in os.walk(folders):
-                for filename in filenames:
-                    filepath = os.path.join(root, filename)
-                    if not self.file_list_generate.findItems(filepath, Qt.MatchFlag.MatchExactly):
-                        self.file_list_generate.addItem(filepath)
 
     def clear_files_generate(self):
         self.file_list_generate.clear()
@@ -762,12 +810,47 @@ class SFVApp(QMainWindow):
             QMessageBox.warning(self, "No Files Selected", "Please add files to generate SFV.")
             return
 
+        # Exclude specified file types
+        exclude_types = self.settings.get_exclude_file_types()
+        if exclude_types:
+            original_file_count = len(files)
+            files = [
+                file for file in files
+                if not any(file.lower().endswith(ext.lower()) for ext in exclude_types)
+            ]
+            excluded_count = original_file_count - len(files)
+            logging.info(f"Excluded {excluded_count} files based on exclude_file_types setting.")
+
+        if not files:
+            logging.warning("No files to process after excluding specified file types.")
+            QMessageBox.warning(self, "No Files to Process", "No files to process after applying exclusions.")
+            return
+
+        self.files_generate = files  # Store the list of files for use in display_sfv
+        directories = [os.path.dirname(file) for file in self.files_generate]
+        try:
+            common_directory = os.path.commonpath(directories)
+        except ValueError:
+            common_directory = directories[0]
+        self.common_directory_generate = common_directory
+
         self.disable_ui_generate()
         self.output_area_generate.clear()
         self.statusBar().showMessage("Generating SFV...")
         logging.info("Starting SFV generation task.")
 
-        self.task = ChecksumTask(files, self.settings.get_checksum_algorithm())
+        # Adjust the thread pool size based on settings
+        num_threads = self.settings.get_num_threads()
+        self.threadpool.setMaxThreadCount(num_threads)
+        logging.debug(f"Set thread pool max thread count to {num_threads}.")
+
+        # Create the checksum task
+        self.task = ChecksumTask(
+            files,
+            self.settings.get_checksum_algorithm(),
+            base_directory=common_directory,
+            num_threads=num_threads
+        )
         self.task.signals.progress.connect(self.progress_bar_generate.setValue)
         self.task.signals.result.connect(self.display_sfv)
         self.task.signals.finished.connect(self.enable_ui_generate)
@@ -775,6 +858,7 @@ class SFVApp(QMainWindow):
 
         self.threadpool.start(self.task)
         logging.debug("ChecksumTask started in thread pool.")
+
 
     def disable_ui_generate(self):
         self.side_menu.setEnabled(False)
@@ -795,28 +879,58 @@ class SFVApp(QMainWindow):
 
     def display_sfv(self, sfv_content):
         logging.debug("display_sfv called with SFV content.")
-        save_path, _ = QFileDialog.getSaveFileName(
-            self, "Save SFV File", self.settings.get_default_directory() or os.getcwd(), "SFV Files (*.sfv);;All Files (*)"
-        )
-        if save_path:
-            try:
-                with open(save_path, 'w') as f:
-                    f.write(sfv_content)
-                logging.info(f"SFV file saved successfully at {save_path}.")
-                QMessageBox.information(self, "Success", "SFV file generated successfully.")
-                self.statusBar().showMessage("SFV file saved.")
-                self.add_to_history(f"SFV Generated: {save_path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            except Exception as e:
-                logging.error(f"Failed to save SFV file at {save_path}: {e}")
-                QMessageBox.critical(self, "Error", f"Failed to save SFV file: {e}")
-                self.statusBar().showMessage("Failed to save SFV file.")
-        else:
-            logging.info("SFV file save dialog was canceled by the user.")
-            self.statusBar().showMessage("SFV file generation canceled.")
+
+        # Use the common directory calculated earlier
+        common_directory = self.common_directory_generate
+
+        # Get default SFV filename from settings
+        default_sfv_filename = self.settings.get_default_sfv_filename() or "checksum"
+        save_path = os.path.join(common_directory, f"{default_sfv_filename}.sfv")
+
+        # Implement backup logic
+        if os.path.exists(save_path):
+            if self.settings.get_backup_original_sfv():
+                backup_path = f"{save_path}.{time.strftime('%Y%m%d%H%M%S')}.bak"
+                try:
+                    os.rename(save_path, backup_path)
+                    logging.info(f"Backup of existing SFV file created: {backup_path}")
+                except Exception as e:
+                    logging.error(f"Failed to create backup of existing SFV file: {e}")
+                    QMessageBox.critical(self, "Backup Error", f"Failed to create backup of existing SFV file: {e}")
+                    self.statusBar().showMessage("Failed to create backup of existing SFV file.")
+                    self.enable_ui_generate()
+                    return
+            else:
+                # If backups are not enabled, generate a unique filename to avoid overwriting
+                save_path = self.get_unique_filename(save_path)
+
+        try:
+            with open(save_path, 'w') as f:
+                f.write(sfv_content)
+            logging.info(f"SFV file saved successfully at {save_path}.")
+            if self.settings.get_enable_notifications():
+                QMessageBox.information(self, "Success", f"SFV file generated and saved at {save_path}.")
+            self.statusBar().showMessage("SFV file saved.")
+            self.add_to_history(f"SFV Generated: {save_path} at {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        except Exception as e:
+            logging.error(f"Failed to save SFV file at {save_path}: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to save SFV file: {e}")
+            self.statusBar().showMessage("Failed to save SFV file.")
 
         self.output_area_generate.setPlainText(sfv_content)
         self.progress_bar_generate.setValue(0)
         logging.debug("SFV content displayed and progress bar reset.")
+
+    def get_unique_filename(self, filepath):
+        """
+        If filepath exists, append a number to the filename to make it unique.
+        """
+        base, ext = os.path.splitext(filepath)
+        counter = 1
+        while os.path.exists(filepath):
+            filepath = f"{base}_{counter}{ext}"
+            counter += 1
+        return filepath
 
     # Methods for Verify SFV Page
     def select_sfv_file(self):
