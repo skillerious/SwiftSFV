@@ -2,7 +2,7 @@
 
 SwiftSFV is a comprehensive GUI application for generating, verifying, and comparing SFV (Simple File Verification) files, comparing files and directories, and ensuring data integrity. Built with Python and PyQt6, SwiftSFV provides an intuitive interface for managing checksums using CRC32, MD5, SHA-1, and other supported algorithms.
 
-![SwiftSFV Logo](images/app_icon.png)
+![SwiftSFV Logo](images/logo1.png)
 
 **Developer**: [Robin Doak](https://github.com/skillerious)
 
