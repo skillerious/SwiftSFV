@@ -136,13 +136,11 @@ After adjusting settings, click **Save** to apply changes.
 
 ## Screenshots
 
-[![Screenshot-2024-10-13-123924.png](https://i.postimg.cc/WzWh2CV7/Screenshot-2024-10-13-123924.png)](https://postimg.cc/PvDty6PL)
+[![Screenshot-2024-10-14-224702.png](https://i.postimg.cc/4xRM7K9S/Screenshot-2024-10-14-224702.png)](https://postimg.cc/8jwwxzwR)
 
-[![Screenshot-2024-10-13-124226.png](https://i.postimg.cc/L5b8dPkC/Screenshot-2024-10-13-124226.png)](https://postimg.cc/kRWmKBpK)
+[![Screenshot-2024-10-14-224712.png](https://i.postimg.cc/4xv0zJvN/Screenshot-2024-10-14-224712.png)](https://postimg.cc/VJ64wPH3)
 
-[![Screenshot-2024-10-13-194342.png](https://i.postimg.cc/WbqFbJc0/Screenshot-2024-10-13-194342.png)](https://postimg.cc/SJqNgRsK)
-
-[![Screenshot-2024-10-13-194328.png](https://i.postimg.cc/qvfttMpS/Screenshot-2024-10-13-194328.png)](https://postimg.cc/0bf5FvM0)
+[![Screenshot-2024-10-14-224731.png](https://i.postimg.cc/6Q9mcDzV/Screenshot-2024-10-14-224731.png)](https://postimg.cc/yDbjYpMW)
 
 ## Error Handling
 
