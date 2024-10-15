@@ -1,0 +1,108 @@
+/* light_theme.qss */
+
+QWidget {
+    background-color: #F0F0F0;
+    color: #000000;
+    font-family: "Segoe UI";
+    font-size: 12pt;
+}
+
+QLabel {
+    color: #000000;
+}
+
+QPushButton {
+    background-color: #E0E0E0;
+    color: #000000;
+    border: 1px solid #BDBDBD;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+QPushButton:hover {
+    background-color: #D5D5D5;
+}
+
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #BDBDBD;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+QComboBox {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #BDBDBD;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+QListWidget {
+    background-color: #FFFFFF;
+    color: #000000;
+    border: 1px solid #BDBDBD;
+}
+
+QMenuBar {
+    background-color: #E0E0E0;
+}
+
+QMenuBar::item {
+    background-color: #E0E0E0;
+    color: #000000;
+}
+
+QMenuBar::item:selected {
+    background-color: #D5D5D5;
+}
+
+QStatusBar {
+    background-color: #E0E0E0;
+}
+
+QProgressBar {
+    border: 1px solid #BDBDBD;
+    text-align: center;
+    color: #000000;
+    background-color: #FFFFFF;
+}
+
+QProgressBar::chunk {
+    background-color: #1E90FF;
+}
+
+QTabWidget::pane {
+    border: 1px solid #BDBDBD;
+}
+
+QTabBar::tab {
+    background-color: #E0E0E0;
+    padding: 5px;
+    border: 1px solid #BDBDBD;
+    border-bottom: none;
+}
+
+QTabBar::tab:selected {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+}
+
+QGroupBox {
+    border: 1px solid #BDBDBD;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 3px 0 3px;
+}
+
+QToolTip {
+    background-color: #E0E0E0;
+    color: #000000;
+    border: 1px solid #BDBDBD;
+}
