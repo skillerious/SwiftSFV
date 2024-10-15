@@ -515,18 +515,21 @@ class SFVApp(QMainWindow):
         """
         Apply the UI theme based on user settings.
         """
-        if self.settings.get_ui_theme() == "Dark":
+        theme = self.settings.get_theme()
+        if theme == "Dark":
+            # Use the existing dark theme implementation
+            QApplication.instance().setStyle("Fusion")
             dark_palette = QPalette()
 
             # Base colors
-            dark_palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorRole.Window, QColor(45, 45, 45))
             dark_palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
-            dark_palette.setColor(QPalette.ColorRole.Base, QColor(25, 25, 25))
-            dark_palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))
+            dark_palette.setColor(QPalette.ColorRole.AlternateBase, QColor(45, 45, 45))
             dark_palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.white)
             dark_palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
             dark_palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
-            dark_palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ColorRole.Button, QColor(45, 45, 45))
             dark_palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
             dark_palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
 
@@ -536,10 +539,37 @@ class SFVApp(QMainWindow):
             dark_palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
 
             QApplication.instance().setPalette(dark_palette)
-            QApplication.instance().setStyle("Fusion")
+            self.setStyleSheet("")  # Clear any existing style sheets
+            logging.debug("Applied Dark theme using QPalette.")
         else:
-            QApplication.instance().setPalette(QApplication.style().standardPalette())
-            QApplication.instance().setStyle("Fusion")
+            # Load the theme qss file
+            theme_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'themes', f'{theme.lower()}_theme.qss')
+            if os.path.exists(theme_file):
+                with open(theme_file, 'r') as f:
+                    style_sheet = f.read()
+                    self.setStyleSheet(style_sheet)
+                QApplication.instance().setPalette(QApplication.style().standardPalette())
+                logging.debug(f"Applied {theme} theme from {theme_file}.")
+            else:
+                logging.warning(f"Theme file not found: {theme_file}. Applying default theme.")
+                self.setStyleSheet("")
+                QApplication.instance().setPalette(QApplication.style().standardPalette())
+                logging.debug("Applied Default theme.")
+
+        # Force style update
+        self.update_style_recursively(self)
+        
+    def update_style_recursively(self, widget):
+        """
+        Force style update for the widget and all its children.
+        """
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
+        for child in widget.findChildren(QWidget):
+            self.update_style_recursively(child)
+
+
 
     def apply_font_settings(self):
         """
@@ -788,7 +818,7 @@ class SFVApp(QMainWindow):
 
     # Methods for Generate SFV Page
     def add_files_generate(self):
-        options = QFileDialog.Option.ReadOnly | QFileDialog.Option.DontUseNativeDialog
+        options = QFileDialog.Option.ReadOnly | QFileDialog.Option.ReadOnly
         files, _ = QFileDialog.getOpenFileNames(
             self, "Select Files to Generate SFV", self.settings.get_default_directory() or os.getcwd(), "All Files (*)", options=options
         )
@@ -934,7 +964,7 @@ class SFVApp(QMainWindow):
 
     # Methods for Verify SFV Page
     def select_sfv_file(self):
-        options = QFileDialog.Option.ReadOnly | QFileDialog.Option.DontUseNativeDialog
+        options = QFileDialog.Option.ReadOnly | QFileDialog.Option.ReadOnly
         sfv_file, _ = QFileDialog.getOpenFileName(
             self, "Select SFV File to Verify", self.settings.get_default_directory() or os.getcwd(), "SFV Files (*.sfv);;All Files (*)", options=options
         )
@@ -1124,14 +1154,16 @@ class SFVApp(QMainWindow):
         self.custom_delimiter = self.settings.get_custom_delimiter()
         self.auto_verify = self.settings.get_auto_verify()
         self.detailed_logging = self.settings.get_detailed_logging()
-        self.ui_theme = self.settings.get_ui_theme()
+        self.theme = self.settings.get_theme()  # Corrected
         self.font_size = self.settings.get_font_size()
         logging.debug(f"Loaded settings: algorithm={self.algorithm}, default_dir={self.default_dir}, "
-                      f"logging_enabled={self.logging_enabled}, log_file_path={self.log_file_path}, "
-                      f"log_format={self.log_format}, output_path_type={self.output_path_type}, "
-                      f"delimiter={self.delimiter}, custom_delimiter={self.custom_delimiter}, "
-                      f"auto_verify={self.auto_verify}, detailed_logging={self.detailed_logging}, "
-                      f"ui_theme={self.ui_theme}, font_size={self.font_size}")
+                    f"logging_enabled={self.logging_enabled}, log_file_path={self.log_file_path}, "
+                    f"log_format={self.log_format}, output_path_type={self.output_path_type}, "
+                    f"delimiter={self.delimiter}, custom_delimiter={self.custom_delimiter}, "
+                    f"auto_verify={self.auto_verify}, detailed_logging={self.detailed_logging}, "
+                    f"theme={self.theme}, font_size={self.font_size}")
+
+
 
     # Notification Method
     def show_notification(self, title, message, icon=QMessageBox.Icon.Information):
@@ -1146,7 +1178,7 @@ class SFVApp(QMainWindow):
             # Provide an option to choose between file and directory
             dialog = QFileDialog(self)
             dialog.setFileMode(QFileDialog.FileMode.AnyFile)
-            dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+            dialog.setOption(QFileDialog.Option.ReadOnly, True)
             if dialog.exec():
                 selected = dialog.selectedFiles()
                 if selected:

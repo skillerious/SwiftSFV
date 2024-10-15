@@ -3,256 +3,267 @@
 import json
 import os
 import logging
-from threading import Lock
 
 class AppSettings:
-    _instance = None
-    _lock = Lock()
+    """
+    AppSettings manages application settings, providing methods to get and set various configuration options.
+    Settings are stored in a JSON file for persistence.
+    """
 
-    def __new__(cls, config_file='settings.json'):
-        if not cls._instance:
-            with cls._lock:
-                if not cls._instance:
-                    cls._instance = super(AppSettings, cls).__new__(cls)
-                    cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self, config_file='settings.json'):
-        if self._initialized:
-            return
-        self.config_file = config_file
-        self.settings = {
-            "checksum_algorithm": "CRC32",
-            "default_directory": os.path.expanduser("~"),
-            "logging_enabled": True,
-            "log_file_path": "sfv_checker_debug.log",
-            "log_format": "TXT",
-            "history": [],
-            "output_path_type": "Relative",   # Options: Relative, Absolute
-            "delimiter": "Space",             # Options: Space, Tab, Custom
-            "custom_delimiter": " ",          # Used if delimiter is Custom
-            "auto_verify": False,             # Boolean
-            "detailed_logging": False,        # Boolean
-            "ui_theme": "Dark",               # Options: Dark, Light
-            "font_size": 12,                  # Integer
-            "language": "English",
-            # New Settings
-            "recent_files_limit": 10,             # Integer
-            "enable_notifications": True,         # Boolean
-            "default_sfv_filename": "checksum",   # String
-            "check_for_updates": True,            # Boolean
-            "checksum_comparison_mode": "Full",   # Options: Quick, Full
-            "num_threads": 4,                     # Integer
-            "auto_save_logs": False,              # Boolean
-            "backup_original_sfv": True,          # Boolean
-            "exclude_file_types": [],             # List of strings (file extensions)
-        }
+    def __init__(self):
+        self.settings_file = os.path.join(os.path.expanduser("~"), '.sfv_checker_settings.json')
+        self.settings = {}
         self.load_settings()
-        self._initialized = True
+
+        # General Settings
+        self.checksum_algorithm = self.settings.get('checksum_algorithm', 'CRC32')
+        self.default_directory = self.settings.get('default_directory', os.path.expanduser("~"))
+        self.logging_enabled = self.settings.get('logging_enabled', True)
+        self.log_file_path = self.settings.get('log_file_path', 'sfv_checker_debug.log')
+        self.log_format = self.settings.get('log_format', 'TXT')
+        self.auto_save_logs = self.settings.get('auto_save_logs', False)
+        self.default_sfv_filename = self.settings.get('default_sfv_filename', 'checksum')
+
+        # Advanced Settings
+        self.output_path_type = self.settings.get('output_path_type', 'Relative')
+        self.delimiter = self.settings.get('delimiter', 'Space')
+        self.custom_delimiter = self.settings.get('custom_delimiter', ' ')
+        self.auto_verify = self.settings.get('auto_verify', False)
+        self.detailed_logging = self.settings.get('detailed_logging', False)
+        self.checksum_comparison_mode = self.settings.get('checksum_comparison_mode', 'Full')
+        self.num_threads = self.settings.get('num_threads', 4)
+        self.exclude_file_types = self.settings.get('exclude_file_types', [])
+
+        # Notifications Settings
+        self.enable_notifications = self.settings.get('enable_notifications', True)
+
+        # Updates Settings
+        self.check_for_updates = self.settings.get('check_for_updates', True)
+
+        # Appearance Settings
+        self.theme = self.settings.get('theme', 'Dark')
+        self.font_size = self.settings.get('font_size', 12)
+        self.language = self.settings.get('language', 'English')
+
+        # History Settings
+        self.recent_files_limit = self.settings.get('recent_files_limit', 10)
+        self.history = self.settings.get('history', [])
+        
 
     def load_settings(self):
-        if os.path.exists(self.config_file):
+        """
+        Load settings from the JSON file.
+        """
+        if os.path.exists(self.settings_file):
             try:
-                with open(self.config_file, 'r') as f:
-                    loaded_settings = json.load(f)
-                    self.settings.update(loaded_settings)
+                with open(self.settings_file, 'r') as f:
+                    self.settings = json.load(f)
                 logging.debug("Settings loaded successfully.")
             except Exception as e:
-                logging.error(f"Error loading settings: {e}")
+                logging.error(f"Failed to load settings: {e}")
+                self.settings = {}
         else:
-            self.save_settings()  # Save defaults if config does not exist
-            logging.debug("Settings file not found. Created default settings.")
+            logging.info("Settings file not found. Using default settings.")
+            self.settings = {}
 
     def save_settings(self):
+        """
+        Save settings to the JSON file.
+        """
         try:
-            with open(self.config_file, 'w') as f:
+            with open(self.settings_file, 'w') as f:
                 json.dump(self.settings, f, indent=4)
             logging.debug("Settings saved successfully.")
         except Exception as e:
-            logging.error(f"Error saving settings: {e}")
+            logging.error(f"Failed to save settings: {e}")
 
-    # Getter methods
+    # Getter and Setter methods for each setting
+
+    # General Settings
     def get_checksum_algorithm(self):
-        return self.settings.get("checksum_algorithm", "CRC32")
+        return self.checksum_algorithm
+
+    def set_checksum_algorithm(self, value):
+        self.checksum_algorithm = value
+        self.settings['checksum_algorithm'] = value
+        self.save_settings()
 
     def get_default_directory(self):
-        return self.settings.get("default_directory", os.getcwd())
+        return self.default_directory
+
+    def set_default_directory(self, value):
+        self.default_directory = value
+        self.settings['default_directory'] = value
+        self.save_settings()
 
     def get_logging_enabled(self):
-        return self.settings.get("logging_enabled", True)
+        return self.logging_enabled
+
+    def set_logging_enabled(self, value):
+        self.logging_enabled = value
+        self.settings['logging_enabled'] = value
+        self.save_settings()
 
     def get_log_file_path(self):
-        return self.settings.get("log_file_path", "sfv_checker_debug.log")
+        return self.log_file_path
+
+    def set_log_file_path(self, value):
+        self.log_file_path = value
+        self.settings['log_file_path'] = value
+        self.save_settings()
 
     def get_log_format(self):
-        return self.settings.get("log_format", "TXT")
+        return self.log_format
 
-    def get_history(self):
-        return self.settings.get("history", [])
-
-    def get_output_path_type(self):
-        return self.settings.get("output_path_type", "Relative")
-
-    def get_delimiter(self):
-        return self.settings.get("delimiter", "Space")
-
-    def get_custom_delimiter(self):
-        return self.settings.get("custom_delimiter", " ")
-
-    def get_auto_verify(self):
-        return self.settings.get("auto_verify", False)
-
-    def get_detailed_logging(self):
-        return self.settings.get("detailed_logging", False)
-
-    def get_ui_theme(self):
-        return self.settings.get("ui_theme", "Dark")
-
-    def get_font_size(self):
-        return self.settings.get("font_size", 12)
-
-    def get_language(self):
-        return self.settings.get("language", "English")
-
-    def get_recent_files_limit(self):
-        return self.settings.get("recent_files_limit", 10)
-
-    def get_enable_notifications(self):
-        return self.settings.get("enable_notifications", True)
-
-    def get_default_sfv_filename(self):
-        return self.settings.get("default_sfv_filename", "checksum")
-
-    def get_check_for_updates(self):
-        return self.settings.get("check_for_updates", True)
-
-    def get_checksum_comparison_mode(self):
-        return self.settings.get("checksum_comparison_mode", "Full")
-
-    def get_num_threads(self):
-        return self.settings.get("num_threads", 4)
+    def set_log_format(self, value):
+        self.log_format = value
+        self.settings['log_format'] = value
+        self.save_settings()
 
     def get_auto_save_logs(self):
-        return self.settings.get("auto_save_logs", False)
+        return self.auto_save_logs
 
-    def get_backup_original_sfv(self):
-        return self.settings.get("backup_original_sfv", True)
+    def set_auto_save_logs(self, value):
+        self.auto_save_logs = value
+        self.settings['auto_save_logs'] = value
+        self.save_settings()
+
+    def get_default_sfv_filename(self):
+        return self.default_sfv_filename
+
+    def set_default_sfv_filename(self, value):
+        self.default_sfv_filename = value
+        self.settings['default_sfv_filename'] = value
+        self.save_settings()
+
+    # Advanced Settings
+    def get_output_path_type(self):
+        return self.output_path_type
+
+    def set_output_path_type(self, value):
+        self.output_path_type = value
+        self.settings['output_path_type'] = value
+        self.save_settings()
+
+    def get_delimiter(self):
+        return self.delimiter
+
+    def set_delimiter(self, value):
+        self.delimiter = value
+        self.settings['delimiter'] = value
+        self.save_settings()
+
+    def get_custom_delimiter(self):
+        return self.custom_delimiter
+
+    def set_custom_delimiter(self, value):
+        self.custom_delimiter = value
+        self.settings['custom_delimiter'] = value
+        self.save_settings()
+
+    def get_auto_verify(self):
+        return self.auto_verify
+
+    def set_auto_verify(self, value):
+        self.auto_verify = value
+        self.settings['auto_verify'] = value
+        self.save_settings()
+
+    def get_detailed_logging(self):
+        return self.detailed_logging
+
+    def set_detailed_logging(self, value):
+        self.detailed_logging = value
+        self.settings['detailed_logging'] = value
+        self.save_settings()
+
+    def get_checksum_comparison_mode(self):
+        return self.checksum_comparison_mode
+
+    def set_checksum_comparison_mode(self, value):
+        self.checksum_comparison_mode = value
+        self.settings['checksum_comparison_mode'] = value
+        self.save_settings()
+
+    def get_num_threads(self):
+        return self.num_threads
+
+    def set_num_threads(self, value):
+        self.num_threads = value
+        self.settings['num_threads'] = value
+        self.save_settings()
 
     def get_exclude_file_types(self):
-        return self.settings.get("exclude_file_types", [])
+        return self.exclude_file_types
 
-    # Setter methods
-    def set_checksum_algorithm(self, algorithm):
-        self.settings["checksum_algorithm"] = algorithm
+    def set_exclude_file_types(self, value):
+        self.exclude_file_types = value
+        self.settings['exclude_file_types'] = value
         self.save_settings()
 
-    def set_default_directory(self, directory):
-        self.settings["default_directory"] = directory
+    # Notifications Settings
+    def get_enable_notifications(self):
+        return self.enable_notifications
+
+    def set_enable_notifications(self, value):
+        self.enable_notifications = value
+        self.settings['enable_notifications'] = value
         self.save_settings()
 
-    def set_logging_enabled(self, enabled):
-        self.settings["logging_enabled"] = enabled
+    # Updates Settings
+    def get_check_for_updates(self):
+        return self.check_for_updates
+
+    def set_check_for_updates(self, value):
+        self.check_for_updates = value
+        self.settings['check_for_updates'] = value
         self.save_settings()
 
-    def set_log_file_path(self, path):
-        self.settings["log_file_path"] = path
+    # Appearance Settings
+    def get_theme(self):
+        return self.theme
+
+    def set_theme(self, value):
+        self.theme = value
+        self.settings['theme'] = value
         self.save_settings()
 
-    def set_log_format(self, format):
-        self.settings["log_format"] = format
+    def get_font_size(self):
+        return self.font_size
+
+    def set_font_size(self, value):
+        self.font_size = value
+        self.settings['font_size'] = value
         self.save_settings()
 
-    def set_output_path_type(self, path_type):
-        self.settings["output_path_type"] = path_type
+    def get_language(self):
+        return self.language
+
+    def set_language(self, value):
+        self.language = value
+        self.settings['language'] = value
         self.save_settings()
 
-    def set_delimiter(self, delimiter):
-        self.settings["delimiter"] = delimiter
+    # History Settings
+    def get_recent_files_limit(self):
+        return self.recent_files_limit
+
+    def set_recent_files_limit(self, value):
+        self.recent_files_limit = value
+        self.settings['recent_files_limit'] = value
         self.save_settings()
 
-    def set_custom_delimiter(self, delimiter):
-        self.settings["custom_delimiter"] = delimiter
-        self.save_settings()
+    def get_history(self):
+        return self.history
 
-    def set_auto_verify(self, auto):
-        self.settings["auto_verify"] = auto
-        self.save_settings()
-
-    def set_detailed_logging(self, detailed):
-        self.settings["detailed_logging"] = detailed
-        self.save_settings()
-
-    def set_ui_theme(self, theme):
-        self.settings["ui_theme"] = theme
-        self.save_settings()
-
-    def set_font_size(self, size):
-        if isinstance(size, int) and 8 <= size <= 24:
-            self.settings["font_size"] = size
-            self.save_settings()
-        else:
-            logging.warning(f"Attempted to set invalid font size: {size}")
-
-    def set_language(self, language):
-        self.settings["language"] = language
-        self.save_settings()
-
-    def set_recent_files_limit(self, limit):
-        if isinstance(limit, int) and limit > 0:
-            self.settings["recent_files_limit"] = limit
-            self.save_settings()
-        else:
-            logging.warning(f"Attempted to set invalid recent files limit: {limit}")
-
-    def set_enable_notifications(self, enable):
-        self.settings["enable_notifications"] = enable
-        self.save_settings()
-
-    def set_default_sfv_filename(self, filename):
-        self.settings["default_sfv_filename"] = filename
-        self.save_settings()
-
-    def set_check_for_updates(self, check):
-        self.settings["check_for_updates"] = check
-        self.save_settings()
-
-    def set_checksum_comparison_mode(self, mode):
-        if mode in ["Quick", "Full"]:
-            self.settings["checksum_comparison_mode"] = mode
-            self.save_settings()
-        else:
-            logging.warning(f"Attempted to set invalid checksum comparison mode: {mode}")
-
-    def set_num_threads(self, num):
-        if isinstance(num, int) and num > 0:
-            self.settings["num_threads"] = num
-            self.save_settings()
-        else:
-            logging.warning(f"Attempted to set invalid number of threads: {num}")
-
-    def set_auto_save_logs(self, auto_save):
-        self.settings["auto_save_logs"] = auto_save
-        self.save_settings()
-
-    def set_backup_original_sfv(self, backup):
-        self.settings["backup_original_sfv"] = backup
-        self.save_settings()
-
-    def set_exclude_file_types(self, file_types):
-        if isinstance(file_types, list):
-            self.settings["exclude_file_types"] = file_types
-            self.save_settings()
-        else:
-            logging.warning(f"Attempted to set invalid exclude file types: {file_types}")
-
-    # History methods
     def add_history_entry(self, entry):
-        self.settings["history"].append(entry)
-        # Enforce recent files limit
-        if len(self.settings["history"]) > self.get_recent_files_limit():
-            self.settings["history"] = self.settings["history"][-self.get_recent_files_limit():]
+        self.history.append(entry)
+        # Limit the history based on recent_files_limit
+        self.history = self.history[-self.recent_files_limit:]
+        self.settings['history'] = self.history
         self.save_settings()
 
     def clear_history(self):
-        self.settings["history"] = []
+        self.history = []
+        self.settings['history'] = self.history
         self.save_settings()

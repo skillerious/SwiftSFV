@@ -27,7 +27,7 @@ class SettingsDialog(QDialog):
         self.images_dir = os.path.join(base_dir, 'images')
         self.init_ui()
         
-    # Set window icon
+        # Set window icon
         self.set_dialog_icon()
 
     def set_dialog_icon(self):
@@ -98,7 +98,9 @@ class SettingsDialog(QDialog):
         # Updated list with additional algorithms
         self.algo_combo.addItems([
             "CRC32", "MD5", "SHA1", "SHA224", "SHA256",
-            "SHA384", "SHA512", "BLAKE2B", "BLAKE2S"
+            "SHA384", "SHA512", "BLAKE2B", "BLAKE2S",
+            "SHA3_224", "SHA3_256", "SHA3_384", "SHA3_512",
+            "SHAKE_128", "SHAKE_256"
         ])
         self.algo_combo.setCurrentText(self.settings.get_checksum_algorithm())
         algo_label.setToolTip("Select the checksum algorithm to use for generating and verifying checksums.")
@@ -351,10 +353,10 @@ class SettingsDialog(QDialog):
         theme_layout = QHBoxLayout()
         theme_label = QLabel("UI Theme:")
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["Dark", "Light"])
-        self.theme_combo.setCurrentText(self.settings.get_ui_theme())
+        self.theme_combo.addItems(["Dark", "Light", "Blue", "Green", "Red", "Purple"])
+        self.theme_combo.setCurrentText(self.settings.get_theme())
         theme_label.setToolTip("Select the UI theme.")
-        self.theme_combo.setToolTip("Choose between dark and light themes.")
+        self.theme_combo.setToolTip("Choose between available themes.")
         theme_layout.addWidget(theme_label)
         theme_layout.addWidget(self.theme_combo)
         layout.addLayout(theme_layout)
@@ -386,6 +388,7 @@ class SettingsDialog(QDialog):
         layout.addStretch()
         appearance_tab.setLayout(layout)
         return appearance_tab
+
 
     def create_history_tab(self):
         """
@@ -427,8 +430,7 @@ class SettingsDialog(QDialog):
         Returns:
             QIcon: The loaded icon or a default icon if not found.
         """
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        images_dir = os.path.join(base_dir, 'images')
+        images_dir = self.images_dir
         icon_path = os.path.join(images_dir, icon_name)
         if os.path.exists(icon_path):
             return QIcon(icon_path)
@@ -497,7 +499,7 @@ class SettingsDialog(QDialog):
         enable_notifications = self.enable_notifications_checkbox.isChecked()
         check_for_updates = self.check_updates_checkbox.isChecked()
 
-        ui_theme = self.theme_combo.currentText()
+        theme = self.theme_combo.currentText()
         font_size = self.font_size_spin.value()
         language = self.language_combo.currentText()
 
@@ -549,14 +551,19 @@ class SettingsDialog(QDialog):
         self.settings.set_enable_notifications(enable_notifications)
         self.settings.set_check_for_updates(check_for_updates)
 
-        self.settings.set_ui_theme(ui_theme)
+        self.settings.set_theme(theme)
         self.settings.set_font_size(font_size)
         self.settings.set_language(language)
 
         self.settings.set_recent_files_limit(recent_files_limit)
 
+        # Apply the new theme dynamically
+        if self.parent():
+            self.parent().apply_theme()
+
         QMessageBox.information(self, "Settings Saved", "Settings have been saved successfully.")
         self.accept()
+
 
     def reset_to_defaults(self):
         """
@@ -616,11 +623,10 @@ class SettingsDialog(QDialog):
             self.settings.set_enable_notifications(True)
             self.settings.set_check_for_updates(True)
 
-            self.settings.set_ui_theme("Dark")
+            self.settings.set_theme("Dark")
             self.settings.set_font_size(12)
             self.settings.set_language("English")
 
             self.settings.set_recent_files_limit(10)
 
             QMessageBox.information(self, "Reset", "All settings have been reset to their default values.")
-

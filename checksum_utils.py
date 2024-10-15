@@ -10,32 +10,68 @@ def calculate_checksum(file_path, algorithm):
 
     Parameters:
         file_path (str): The path to the file.
-        algorithm (str): The checksum algorithm to use ('CRC32', 'MD5', 'SHA1', 'SHA256', 'SHA384', 'SHA512', 'BLAKE2B', 'BLAKE2S').
+        algorithm (str): The checksum algorithm to use.
 
     Returns:
-        str: The calculated checksum in uppercase hexadecimal format, or an error string.
+        str: The calculated checksum in hexadecimal format.
     """
-    if algorithm == 'CRC32':
-        try:
-            checksum = 0
-            with open(file_path, 'rb') as f:
-                while chunk := f.read(4096):
-                    checksum = zlib.crc32(chunk, checksum)
-            return f"{checksum & 0xFFFFFFFF:08X}"
-        except Exception as e:
-            logging.error(f"Error calculating CRC32 for {file_path}: {e}")
-            return 'ERROR'
+    logging.debug(f"Calculating checksum for {file_path} using {algorithm} algorithm.")
+
+    if algorithm == "CRC32":
+        return calculate_crc32(file_path)
     else:
-        hash_obj = getattr(hashlib, algorithm.lower(), None)
-        if not hash_obj:
-            logging.error(f"Unsupported algorithm: {algorithm}")
-            return 'UNKNOWN_ALGORITHM'
-        hash_instance = hash_obj()
         try:
-            with open(file_path, 'rb') as f:
-                while chunk := f.read(4096):
-                    hash_instance.update(chunk)
-            return hash_instance.hexdigest().upper()
-        except Exception as e:
-            logging.error(f"Error reading file {file_path} for checksum calculation: {e}")
-            return 'ERROR'
+            hash_func = get_hash_function(algorithm)
+        except ValueError as e:
+            logging.error(str(e))
+            raise
+
+        with open(file_path, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b''):
+                hash_func.update(chunk)
+        checksum = hash_func.hexdigest()
+        logging.debug(f"Checksum for {file_path}: {checksum}")
+        return checksum
+
+def calculate_crc32(file_path):
+    """
+    Calculate the CRC32 checksum of a file.
+
+    Parameters:
+        file_path (str): The path to the file.
+
+    Returns:
+        str: The calculated CRC32 checksum in hexadecimal format.
+    """
+    logging.debug(f"Calculating CRC32 checksum for {file_path}.")
+    buf_size = 65536  # Read in chunks of 64KB
+    crc32 = 0
+    with open(file_path, 'rb') as f:
+        while True:
+            data = f.read(buf_size)
+            if not data:
+                break
+            crc32 = zlib.crc32(data, crc32)
+    # Format as unsigned integer and convert to uppercase hexadecimal
+    checksum = format(crc32 & 0xFFFFFFFF, '08X')
+    logging.debug(f"CRC32 checksum for {file_path}: {checksum}")
+    return checksum
+
+def get_hash_function(algorithm):
+    """
+    Get the hash function corresponding to the specified algorithm.
+
+    Parameters:
+        algorithm (str): The name of the algorithm.
+
+    Returns:
+        hashlib._hashlib.HASH: The hash function object.
+
+    Raises:
+        ValueError: If the algorithm is not supported.
+    """
+    algorithm = algorithm.lower()
+    if algorithm in hashlib.algorithms_available:
+        return hashlib.new(algorithm)
+    else:
+        raise ValueError(f"Unsupported algorithm: {algorithm}")
